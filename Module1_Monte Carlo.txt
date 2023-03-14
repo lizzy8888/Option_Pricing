@@ -1,0 +1,106 @@
+'Prints out formula as text
+'My thanks to Maja Sliwinski for developing this!
+Function GetFormula(Rng As Range) As String
+    Application.Volatile True
+    GetFormula = "<-- " & Application.Text(Rng.FormulaLocal, "")
+End Function
+Function VanillaCall(S0, Exercise, Mean, Sigma, Interest, _
+    Time, Divisions, Runs)
+    deltat = 1 / Divisions
+    interestdelta = Exp(Interest * deltat)
+    
+    up = Exp(Mean * deltat + Sigma * Sqr(deltat))
+    down = Exp(Mean * deltat - Sigma * Sqr(deltat))
+    
+    pathlength = Int(Time / deltat)
+    
+'Risk-neutral probabilities
+piup = (interestdelta - down) / (up - down)
+pidown = 1 - piup
+         
+Temp = 0
+
+For Index = 1 To Runs
+    Upcounter = 0
+    'Generate terminal price
+    For j = 1 To pathlength
+    If Rnd > pidown Then Upcounter = Upcounter + 1
+    Next j
+    callvalue = Application.Max(S0 * (up ^ Upcounter) * _
+    (down ^ (pathlength - Upcounter)) - Exercise, 0) _
+    / (interestdelta ^ pathlength)
+    Temp = Temp + callvalue
+Next Index
+
+VanillaCall = Temp / Runs
+End Function
+Function BetterVanillaCall(S0, Exercise, Mean, Sigma, _
+    Interest, Time, Divisions, Runs)
+    deltat = Time / Divisions
+    interestdelta = Exp(Interest * deltat)
+    
+up = Exp(Mean * deltat + Sigma * Sqr(deltat))
+down = Exp(Mean * deltat - Sigma * Sqr(deltat))
+
+pathlength = Int(Time / deltat)
+
+'Risk-neutral probabilities
+piup = (interestdelta - down) / (up - down)
+pidown = 1 - piup
+
+Temp = 0
+
+For Index = 1 To Runs
+    Upcounter = 0
+    'Generate terminal price
+    For j = 1 To pathlength
+    If Rnd > pidown Then Upcounter = Upcounter + 1
+        If S0 * up ^ (Upcounter + n - j) * _
+        down ^ (j - Upcounter) < X Then GoTo Compute
+    Next j
+Compute:
+    callvalue = Application.Max(S0 * (up ^ Upcounter) * _
+    (down ^ (pathlength - Upcounter)) _
+    - Exercise, 0) / (interestdelta ^ pathlength)
+    Temp = Temp + callvalue
+Next Index
+
+BetterVanillaCall = Temp / Runs
+End Function
+
+
+
+Sub GeneratePath()
+Dim PricePath() As Double
+ReDim PricePath(Range("periods") + 1)
+
+    TotalPrice = 0
+    For i = 1 To Range("periods")
+            PricePath(0) = Range("initialprice")
+            'pathprob = 1
+            If Rnd > 0.5 Then
+                PricePath(i) = PricePath(i - 1) * Range("up")
+                'pathprob = pathprob * piup
+                
+                Else:
+                PricePath(i) = PricePath(i - 1) * Range("down")
+                'pathprob = pathprob * pidown
+        End If
+        
+    Next i
+    Temp = ""
+    MsgBox Temp & Chr(13) & PricePath(0) & "," & PricePath(1) & "," & PricePath(2) & "," & PricePath(3) & "," & PricePath(4) _
+    & Chr(13) & "Average path price is " & FormatNumber((PricePath(0) + PricePath(1) + PricePath(2) + PricePath(3) + PricePath(4)) / 5, 3) _
+    & Chr(13) & "average = " & Application.Sum(PricePath) / (Range("Periods") + 1) _
+    & Chr(13) & "Excel Average function = " & Application.Average(PricePath) _
+    & Chr(13) & "payoff = " & Application.Max(Application.Average(PricePath) - Range("Exercise"), 0) _
+    & Chr(13) & "risk-neutral up price = " & FormatNumber((Range("Interest") - Range("down")) / (Range("up") - Range("down")), 4)
+
+    '& Chr(13) & "Path probability = " & FormatNumber(pathprob, 4) _
+    & Chr(13) & "State prices {qup,qdown} = {" & FormatNumber(qup, 4) & "," & FormatNumber(qdown, 4) & "}" _
+    & Chr(13) & "Call payoff = " & callpayoff
+    
+End Sub
+
+
+

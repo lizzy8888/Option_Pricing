@@ -1,0 +1,73 @@
+'8/5/2006 Thanks to Maja Sliwinski and Beni Czaczkes
+Function getformula(R As Range) As String
+   Application.Volatile
+   If R.HasArray Then
+   getformula = "<-- " & " {" & R.FormulaArray & "}"
+   Else
+   getformula = "<-- " & " " & R.FormulaArray
+   End If
+End Function
+Function Binomial_eur_call(Up, Down, Interest, Stock, Exercise, Periods)
+    q_up = (Interest - Down) / (Interest * (Up - Down))
+    q_down = 1 / Interest - q_up
+    Binomial_eur_call = 0
+    For Index = 0 To Periods
+        Binomial_eur_call = Binomial_eur_call + Application.Combin(Periods, Index) * q_up ^ Index * _
+            q_down ^ (Periods - Index) * Application.Max(Stock * Up ^ Index * Down ^ (Periods - Index) - Exercise, 0)
+    Next Index
+End Function
+Function Binomial_eur_put(Up, Down, Interest, Stock, Exercise, Periods)
+    Binomial_eur_put = Binomial_eur_call(Up, Down, Interest, Stock, Exercise, Periods) _
+    + Exercise / Interest ^ Periods - Stock
+End Function
+Function Binomial_amer_put(Up, Down, Interest, Stock, Exercise, Periods)
+    q_up = (Interest - Down) / (Interest * (Up - Down))
+    q_down = 1 / Interest - q_up
+
+    Dim OptionReturnEnd() As Double
+    Dim OptionReturnMiddle() As Double
+    ReDim OptionReturnEnd(Periods + 1)
+
+    For State = 0 To Periods
+          OptionReturnEnd(State) = Application.Max(Exercise - Stock * Up ^ State * Down ^ (Periods - State), 0)
+    Next State
+    
+    For Index = Periods - 1 To 0 Step -1
+        ReDim OptionReturnMiddle(Index)
+        For State = 0 To Index
+           OptionReturnMiddle(State) = Application.Max(Exercise - Stock * Up ^ State * Down ^ (Index - State), _
+                 q_down * OptionReturnEnd(State) + q_up * OptionReturnEnd(State + 1))
+        Next State
+        ReDim OptionReturnEnd(Index)
+        For State = 0 To Index
+            OptionReturnEnd(State) = OptionReturnMiddle(State)
+        Next State
+    Next Index
+    Binomial_amer_put = OptionReturnMiddle(0)
+End Function
+Function Binomial_amer_call(Up, Down, Interest, Stock, Exercise, Periods)
+    q_up = (Interest - Down) / (Interest * (Up - Down))
+    q_down = 1 / Interest - q_up
+
+    Dim OptionReturnEnd() As Double
+    Dim OptionReturnMiddle() As Double
+    ReDim OptionReturnEnd(Periods + 1)
+
+    For State = 0 To Periods
+          OptionReturnEnd(State) = Application.Max(Stock * Up ^ State * Down ^ (Periods - State) - Exercise, 0)
+    Next State
+    
+    For Index = Periods - 1 To 0 Step -1
+        ReDim OptionReturnMiddle(Index)
+        For State = 0 To Index
+           OptionReturnMiddle(State) = Application.Max(Stock * Up ^ State * Down ^ (Index - State) - Exercise, _
+                 q_down * OptionReturnEnd(State) + q_up * OptionReturnEnd(State + 1))
+        Next State
+        ReDim OptionReturnEnd(Index)
+        For State = 0 To Index
+            OptionReturnEnd(State) = OptionReturnMiddle(State)
+        Next State
+    Next Index
+    Binomial_amer_call = OptionReturnMiddle(0)
+End Function
+

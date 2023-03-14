@@ -1,0 +1,16 @@
+Function dOne(Stock, Exercise, Time, Interest, Sigma)
+    dOne = (Log(Stock / Exercise) + Interest * Time) / (Sigma * Sqr(Time)) _
+        + 0.5 * Sigma * Sqr(Time)
+End Function
+'This is the BS call option price
+Function BSCall(Stock, Exercise, Time, Interest, Sigma)
+    BSCall = Stock * Application.NormSDist(dOne(Stock, Exercise, _
+        Time, Interest, Sigma)) - Exercise * Exp(-Time * Interest) * _
+     Application.NormSDist(dOne(Stock, Exercise, Time, Interest, Sigma) _
+      - Sigma * Sqr(Time))
+End Function
+'The BS put option price uses put-call parity
+Function BSPut(Stock, Exercise, Time, Interest, Sigma)
+    BSPut = BSCall(Stock, Exercise, Time, Interest, Sigma) + _
+    Exercise * Exp(-Time * Interest) - Stock
+End Function
